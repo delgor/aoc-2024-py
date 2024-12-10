@@ -27,6 +27,9 @@ for idx_row in range(0, len(in_field)):
         if frequency == ".":
             continue
 
+        if frequency == "#":
+            continue
+
         if frequency not in antennas:
             antennas[frequency] = list()
 
@@ -34,48 +37,69 @@ for idx_row in range(0, len(in_field)):
         antennas[frequency].append(antenna_position)
 
 # Calculate antinodes for each frequency
-antinodes = dict()
-for frequency in antennas.keys():
-    print(f"Found antennas at '{frequency}': {antennas[frequency]})")
+def calculate_antinodes(multi=False):
+    antinodes = dict()
+    for frequency in antennas.keys():
+        print(f"Found antennas at '{frequency}': {antennas[frequency]})")
 
-    antinodes[frequency] = set()
-    for antenna_first in antennas[frequency]:
-        for antenna_second in antennas[frequency]:
-            if antenna_first == antenna_second:
-                continue
+        antinodes[frequency] = set()
+        for antenna_first in antennas[frequency]:
+            for antenna_second in antennas[frequency]:
+                if antenna_first == antenna_second:
+                    continue
 
-            vec_diff = sub_vec(antenna_first, antenna_second)
+                vec_diff = sub_vec(antenna_first, antenna_second)
 
-            def add_antinode(antinode):
-                for idx in [0, 1]:
-                    if antinode[idx] < 0 or antinode[idx] >= len(in_field):
-                        print(f"   outer {antinode}")
-                        return
+                def in_bounds(antinode):
+                    for idx in [0, 1]:
+                        if antinode[idx] < 0 or antinode[idx] >= len(in_field):
+                            print(f"   outer {antinode}")
+                            return False
+                    return True
 
-                    if antinode in antinodes[frequency]:
-                        print(f"   dupl  {antinode}")
-                        return
+                def add_antinode(antinode):
+                    for idx in [0, 1]:
+                        if antinode[idx] < 0 or antinode[idx] >= len(in_field):
+                            print(f"   outer {antinode}")
+                            return
 
-                print(f"   added {antinode}")
-                antinodes[frequency].add(antinode)
+                        if antinode in antinodes[frequency]:
+                            print(f"   dupl  {antinode}")
+                            return
 
-            first_antinode = sub_vec(antenna_second, vec_diff)
-            second_antinode = add_vec(antenna_first, vec_diff)
+                    print(f"   added {antinode}")
+                    antinodes[frequency].add(antinode)
 
-            print(f"{antenna_first} - {antenna_second} = {vec_diff} -> {first_antinode}, {second_antinode}")
+                first_antinode = sub_vec(antenna_second, vec_diff)
+                second_antinode = add_vec(antenna_first, vec_diff)
 
-            add_antinode(first_antinode)
-            add_antinode(second_antinode)
+                print(f"{antenna_first} - {antenna_second} = {vec_diff} -> {first_antinode}, {second_antinode}")
+
+                add_antinode(first_antinode)
+                add_antinode(second_antinode)
+
+                if multi:
+                    add_antinode(antenna_first)
+                    add_antinode(antenna_second)
+                    while in_bounds(first_antinode):
+                        first_antinode = sub_vec(first_antinode, vec_diff)
+                        add_antinode(first_antinode)
+                    while in_bounds(second_antinode):
+                        second_antinode = add_vec(second_antinode, vec_diff)
+                        add_antinode(second_antinode)
+    return antinodes
 
 
-part1 = 0
+def count_unique_antinodes(antinodes):
+    all_antinodes = set()
+    for frequency in antinodes.keys():
+        all_antinodes.update(antinodes[frequency])
 
-all_antinodes = set()
-for frequency in antinodes.keys():
-    all_antinodes.update(antinodes[frequency])
-
-part1 += len(all_antinodes)
-
+    return len(all_antinodes)
 
 
+part1 = count_unique_antinodes(calculate_antinodes(False))
 print(f"part1: {part1}")
+
+part2 = count_unique_antinodes(calculate_antinodes(True))
+print(f"part2: {part2}")
